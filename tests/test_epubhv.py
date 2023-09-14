@@ -50,6 +50,7 @@ def test_find_epub_css_files():
     b._make_epub_values()
     assert b.has_css_file is False
     b.run()
+    os.remove("animal_farm-v-original.epub")
     f = EPUBHV("tests/test_epub/books/lemo.epub")
     f.run("to_horizontal")
     assert os.path.exists("lemo-h-original.epub") is True
@@ -73,7 +74,7 @@ def test_change_epub_covert():
         + q.files_dict.get(".xhtml", [])
         + q.files_dict.get(".htm", [])
     ):
-        with open(html_file, "r", encoding="utf-8") as f:
+        with open(html_file, "r", encoding="utf-8", errors="ignore") as f:
             r = f.read()
             if r.find("滾滾長江東逝水") > 0:
                 has_t_count += 1
@@ -129,3 +130,4 @@ def test_punctuation():
     “我最赞成罗素先生的一句话：‘须知参差多态，乃是幸福的本源。’大多数的参差多态都是敏于思索的人创造出来的。”
     “我最赞成罗素先生的一句话：‘须知参差多态，乃是幸福的本源。’大多数的参差多态都是敏于思索的人创造出来的。”
     """
+    os.remove("sanguo-v-s2t-v-original.epub")
