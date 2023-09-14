@@ -2,7 +2,7 @@ import os
 import shutil
 from pathlib import Path
 
-from epubhv import EPUBHV, _make_epub_files_dict, list_all_epub_in_dir
+from epubhv import EPUBHV, _make_epub_files_dict, list_all_epub_in_dir, Punctuation
 
 
 def test_find_epub_books():
@@ -35,6 +35,8 @@ def test_make_files_dict():
 
 
 def test_change_epub_to_vertical():
+    if os.path.exists("animal_farm-v-original.epub"):
+        os.remove("animal_farm-v-original.epub")
     b = EPUBHV("tests/test_epub/animal_farm.epub")
     b.run()
     assert b.opf_file == Path(".epub_temp_dir/animal_farm/content.opf")
@@ -42,9 +44,11 @@ def test_change_epub_to_vertical():
 
 
 def test_find_epub_css_files():
+    if os.path.exists("lemo-h-original.epub"):
+        os.remove("lemo-h-original.epub")
     b = EPUBHV("tests/test_epub/animal_farm.epub")
     b._make_epub_values()
-    assert b.has_css_file == False
+    assert b.has_css_file is False
     b.run()
     f = EPUBHV("tests/test_epub/books/lemo.epub")
     f.run("to_horizontal")
@@ -53,6 +57,10 @@ def test_find_epub_css_files():
 
 
 def test_change_epub_covert():
+    if os.path.exists("sanguo-v-s2t-v-original.epub"):
+        os.remove("sanguo-v-s2t-v-original.epub")
+    if os.path.exists("sanguo-v-s2t.epub"):
+        os.remove("sanguo-v-s2t.epub")
     f = EPUBHV("tests/test_epub/sanguo.epub", "s2t")
     f.run("to_vertical")
     assert os.path.exists("sanguo-v-s2t.epub") is True
@@ -65,10 +73,59 @@ def test_change_epub_covert():
         + q.files_dict.get(".xhtml", [])
         + q.files_dict.get(".htm", [])
     ):
-        with open(html_file, "r") as f:
+        with open(html_file, "r", encoding="utf-8") as f:
             r = f.read()
             if r.find("滾滾長江東逝水") > 0:
                 has_t_count += 1
     assert has_t_count > 0
     q.run("to_vertical")
     os.remove("sanguo-v-s2t.epub")
+
+
+def test_punctuation():
+    import opencc
+
+    s = """
+    “我最赞成罗素先生的一句话：‘须知参差多态，乃是幸福的本源。’大多数的参差多态都是敏于思索的人创造出来的。”
+    ﹃我最赞成罗素先生的一句话：﹁须知参差多态，乃是幸福的本源。﹂大多数的参差多态都是敏于思索的人创造出来的。﹄
+    """
+    t = """
+    「我最贊成羅素先生的一句話：『須知參差多態，乃是幸福的本源。』大多數的參差多態都是敏於思索的人創造出來的。」
+    ﹁我最贊成羅素先生的一句話：﹃須知參差多態，乃是幸福的本源。﹄大多數的參差多態都是敏於思索的人創造出來的。﹂
+    """
+
+    punctuation = Punctuation()
+
+    res = punctuation.convert(s, 'HORIZONTAL', 'hans', 'hant')
+    res = opencc.OpenCC('s2t').convert(res)
+    assert res == """
+    「我最贊成羅素先生的一句話：『須知參差多態，乃是幸福的本源。』大多數的參差多態都是敏於思索的人創造出來的。」
+    「我最贊成羅素先生的一句話：『須知參差多態，乃是幸福的本源。』大多數的參差多態都是敏於思索的人創造出來的。」
+    """
+
+    res = punctuation.convert(t, 'HORIZONTAL', 'hant', 'hans')
+    res = opencc.OpenCC('t2s').convert(res)
+    assert res == """
+    “我最赞成罗素先生的一句话：‘须知参差多态，乃是幸福的本源。’大多数的参差多态都是敏于思索的人创造出来的。”
+    “我最赞成罗素先生的一句话：‘须知参差多态，乃是幸福的本源。’大多数的参差多态都是敏于思索的人创造出来的。”
+    """
+
+    res = punctuation.convert(s, 'VERTICAL', 'hans', 'hant')
+    res = opencc.OpenCC('s2t').convert(res)
+    assert res == """
+    「我最贊成羅素先生的一句話：『須知參差多態，乃是幸福的本源。』大多數的參差多態都是敏於思索的人創造出來的。」
+    「我最贊成羅素先生的一句話：『須知參差多態，乃是幸福的本源。』大多數的參差多態都是敏於思索的人創造出來的。」
+    """
+
+    res = punctuation.convert(t, 'VERTICAL', 'hant', 'hans')
+    res = opencc.OpenCC('t2s').convert(res)
+    assert res == """
+    “我最赞成罗素先生的一句话：‘须知参差多态，乃是幸福的本源。’大多数的参差多态都是敏于思索的人创造出来的。”
+    “我最赞成罗素先生的一句话：‘须知参差多态，乃是幸福的本源。’大多数的参差多态都是敏于思索的人创造出来的。”
+    """
+
+    res = punctuation.convert(s, 'VERTICAL', 'hans', 'hans')
+    assert res == """
+    “我最赞成罗素先生的一句话：‘须知参差多态，乃是幸福的本源。’大多数的参差多态都是敏于思索的人创造出来的。”
+    “我最赞成罗素先生的一句话：‘须知参差多态，乃是幸福的本源。’大多数的参差多态都是敏于思索的人创造出来的。”
+    """
